@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Election Dashboard</title>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+ * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  height: 100%;
+  font-family: 'Poppins', sans-serif;
+  background: transparent;
+  color: #2c3e50;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('{{ url_for("static", filename="voting_tabulation_machine.jpg") }}') no-repeat center center / cover;
+  filter: blur(8px) brightness(0.9);
+  z-index: -1;
+}
+
+.content {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.fa-vote-yea {
+  font-size: 50px;
+  color: #8a2be2;
+  margin: 20px 0 10px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.95);
+  color: #2c3e50;
+  padding: 20px;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.sidebar h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  margin-bottom: 10px;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: #2c3e50;
+  font-size: 15px;
+}
+
+.sidebar a:hover {
+  text-decoration: underline;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  color: #2c3e50;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.card p {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.card canvas {
+  flex-grow: 1;
+  width: 100% !important;
+  height: 200px !important;
+}
+
+.vote-btn {
+  margin-top: 15px;
+  padding: 10px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.vote-btn:hover {
+  background: #2980b9;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: none;
+  }
+}
+
+  </style>
+</head>
+<body>
+
+  <div class="content">
+    <i class="fas fa-vote-yea"></i>
+    <h2>Election Dashboard</h2>
+
+    <div class="dashboard-container">
+      <aside class="sidebar">
+        <h3>Categories</h3>
+        <ul>
+          <li><a href="#">Student Elections</a></li>
+          <li><a href="#">Club Elections</a></li>
+          <li><a href="#">Past Results</a></li>
+        </ul>
+      </aside>
+
+      <main class="main-content">
+        <div class="card">
+          <h3>Student Council Election</h3>
+          <p>Vote for your representative in the student council.</p>
+          <canvas id="chart1"></canvas>
+          <a href="/election/election1">
+            <button class="vote-btn">Vote Now</button>
+          </a>
+        </div>
+
+        <div class="card">
+          <h3>Club President Election</h3>
+          <p>Choose your leader for the upcoming year.</p>
+          <canvas id="chart2"></canvas>
+          <a href="/election/election2">
+            <button class="vote-btn">Vote Now</button>
+          </a>
+        </div>
+
+        <div class="card">
+          <h3>Live Participation</h3>
+          <p>Track voting activity in real-time.</p>
+          <canvas id="chart3"></canvas>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function createChart(chartId, electionId) {
+      fetch(`/get-votes/${electionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data || Object.keys(data).length === 0) {
+            console.warn(`No data for ${electionId}`);
+            return;
+          }
+          const ctx = document.getElementById(chartId).getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: Object.keys(data),
+              datasets: [{
+                label: 'Votes',
+                data: Object.values(data),
+                backgroundColor: '#3498db'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        })
+        .catch(err => {
+          console.error(`Error loading chart for ${electionId}:`, err);
+        });
+    }
+
+    function createPieChart(chartId, electionId) {
+      fetch(`/get-votes/${electionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data || Object.keys(data).length === 0) {
+            console.warn(`No data for ${electionId}`);
+            return;
+          }
+          const ctx = document.getElementById(chartId).getContext('2d');
+          new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: Object.keys(data),
+              datasets: [{
+                data: Object.values(data),
+                backgroundColor: [
+                  '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'
+                ],
+                borderColor: '#fff',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#2c3e50',
+                    font: { weight: 'bold' }
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = context.raw;
+                      return `${label}: ${value} vote(s)`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        })
+        .catch(err => {
+          console.error(`Error loading pie chart for ${electionId}:`, err);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      createChart('chart1', 'election1');
+      createChart('chart2', 'election2');
+      createPieChart('chart3', 'election1'); // Live participation = pie chart with candidate names
+    });
+  </script>
+
+</body>
+</html>

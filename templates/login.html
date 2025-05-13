@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      height: 100%;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+    }
+    .bg-video {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(20, 24, 35, 0.75);
+      padding: 20px;
+      color: #eee;
+      text-align: center;
+      backdrop-filter: blur(6px);
+    }
+    .fa-vote-yea {
+      font-size: 50px;
+      color: #8a2be2;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    h2 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      color: #f4f4f4;
+    }
+    select, input, button {
+      width: 320px;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+    select {
+      background: rgba(255, 255, 255, 0.1);
+      color: #eee;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    input {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    input:focus {
+      outline: none;
+      border-color: #8a2be2;
+      box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+    }
+    button {
+      background: linear-gradient(45deg, #8a2be2, #6a5acd);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      border: none;
+    }
+    button:hover {
+      background: linear-gradient(45deg, #6a5acd, #8a2be2);
+      transform: translateY(-2px);
+    }
+    video#video {
+      width: 320px;
+      border-radius: 12px;
+      border: 2px solid #8a2be2;
+      margin: 15px 0;
+      z-index: 2;
+    }
+    @media (max-width: 500px) {
+      select, input, button, video#video {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <video id="bgVideo" class="bg-video" autoplay loop muted>
+    <source src="{{ url_for('static', filename='VoteVault.mp4') }}" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
+
+  <div class="content">
+    <i class="fas fa-vote-yea"></i>
+    <h2 id="login-title">Login with Face</h2>
+
+    <select id="langSelect">
+      <option value="en">English</option>
+      <option value="hi">हिंदी</option>
+    </select>
+
+    <video id="video" autoplay muted></video>
+    <input type="email" id="email" placeholder="Enter your email">
+    <input type="password" id="password" placeholder="Enter your password">
+    <button id="login">Scan & Login</button>
+    <button id="signupBtn" onclick="window.location.href='/signup'">Go to Sign Up</button>
+  </div>
+
+  <script>
+    const bgVideo = document.getElementById('bgVideo');
+    document.body.addEventListener('click', function enableAudio() {
+      bgVideo.muted = false;
+      bgVideo.play().catch(err => console.error("Background video play failed:", err));
+      document.body.removeEventListener('click', enableAudio);
+    });
+
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        console.error("Webcam access error:", err);
+        alert("Webcam not accessible.");
+      });
+
+    const langStrings = {
+      en: {
+        "login-title": "Login with Face",
+        "email": "Enter your email",
+        "password": "Enter your password",
+        "login": "Scan & Login",
+        "signup": "Go to Sign Up"
+      },
+      hi: {
+        "login-title": "चेहरे से लॉगिन करें",
+        "email": "अपना ईमेल दर्ज करें",
+        "password": "अपना पासवर्ड दर्ज करें",
+        "login": "स्कैन करें और लॉगिन करें",
+        "signup": "साइन अप पर जाएं"
+      }
+    };
+
+    const updateLang = (lang) => {
+      document.getElementById('login-title').innerText = langStrings[lang]['login-title'];
+      document.getElementById('email').placeholder = langStrings[lang]['email'];
+      document.getElementById('password').placeholder = langStrings[lang]['password'];
+      document.getElementById('login').innerText = langStrings[lang]['login'];
+      document.getElementById('signupBtn').innerText = langStrings[lang]['signup'];
+    };
+
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+      updateLang(e.target.value);
+    });
+
+    document.getElementById('login').addEventListener('click', () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!email || !password) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg');
+
+      fetch('/verify-face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, image: imageData })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.message || "Login failed. Please try again.");
+        }
+      })
+      .catch(err => {
+        console.error("Login error:", err);
+        alert("An error occurred. Please try again later.");
+      });
+    });
+
+    updateLang("en");
+  </script>
+
+</body>
+</html>
